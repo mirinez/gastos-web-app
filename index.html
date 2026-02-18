@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calm Expenses</title>
+
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+</head>
+<body>
+  <main class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">◎</div>
+        <div>
+          <h1>Calm Expenses</h1>
+          <p class="sub">Registra gastos e ingresos rápido, sin ruido.</p>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Secciones">
+      <button class="tab is-active" data-tab="dashboard" type="button">Resumen</button>
+      <button class="tab" data-tab="accounts" type="button">Cuentas</button>
+      <button class="tab" data-tab="tags" type="button">Etiquetas</button>
+      <button class="tab" data-tab="recurring" type="button">Recurrentes</button>
+    </nav>
+
+    <section class="content">
+      <!-- DASHBOARD -->
+      <div class="panel is-active" id="tab-dashboard" role="tabpanel">
+        <div class="grid">
+          <section class="card">
+            <div class="card-header">
+              <h2>Nuevo movimiento</h2>
+              <p class="muted">Gasto o ingreso asociado a una cuenta, con etiquetas opcionales.</p>
+            </div>
+
+            <form id="formTx" class="form" autocomplete="off">
+              <div class="row">
+                <div class="field">
+                  <label for="txType">Tipo</label>
+                  <select id="txType" required>
+                    <option value="expense">Gasto</option>
+                    <option value="income">Ingreso</option>
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label for="txAmount">Cantidad</label>
+                  <input id="txAmount" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="0.00" required />
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="field">
+                  <label for="txDate">Fecha</label>
+                  <input id="txDate" type="date" required />
+                </div>
+
+                <div class="field">
+                  <label for="txAccount">Cuenta</label>
+                  <select id="txAccount" required></select>
+                </div>
+              </div>
+
+              <div class="field">
+                <label>Etiquetas</label>
+                <div id="txTagsChips" class="chips" aria-label="Etiquetas seleccionadas"></div>
+                <button type="button" class="btn btn-ghost btn-sm btn-pick" id="btnTxPickTags">Elegir</button>
+                <div class="picker" id="txTagPicker" hidden aria-label="Selector de etiquetas"></div>
+              </div>
+
+              <div class="field">
+                <label for="txNote">Nota (opcional)</label>
+                <input id="txNote" type="text" maxlength="140" placeholder="Ej: cena, transporte, etc." />
+              </div>
+
+              <div class="row actions">
+                <button class="btn btn-primary" type="submit">Añadir</button>
+                <button class="btn btn-ghost" type="button" id="btnTxClear">Limpiar</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="card">
+            <div class="card-header">
+              <h2>Resumen del mes</h2>
+              <p class="muted" id="monthLabel"></p>
+            </div>
+
+            <div class="stats">
+              <div class="stat">
+                <div class="k">Ingresado</div>
+                <div class="v" id="statIncome">—</div>
+              </div>
+              <div class="stat">
+                <div class="k">Gastado</div>
+                <div class="v" id="statExpense">—</div>
+              </div>
+              <div class="stat">
+                <div class="k">Saldo total</div>
+                <div class="v" id="statTotal">—</div>
+              </div>
+            </div>
+
+            <hr class="sep"/>
+
+            <h3 class="h3">Movimientos recientes</h3>
+            <div class="list" id="txList" aria-live="polite"></div>
+            <p class="muted small" id="txEmpty" hidden>No hay movimientos aún.</p>
+          </section>
+        </div>
+      </div>
+
+      <!-- ACCOUNTS -->
+      <div class="panel" id="tab-accounts" role="tabpanel">
+        <section class="card">
+          <div class="card-header">
+            <h2>Cuentas</h2>
+            <p class="muted">El saldo actual se calcula con movimientos.</p>
+          </div>
+
+          <form id="formAccount" class="form">
+            <div class="row">
+              <div class="field">
+                <label for="accName">Nombre</label>
+                <input id="accName" type="text" required maxlength="32" placeholder="Ej: Banco" />
+              </div>
+              <div class="field">
+                <label for="accInitial">Saldo inicial (opcional)</label>
+                <input id="accInitial" type="number" inputmode="decimal" step="0.01" placeholder="0.00" />
+              </div>
+            </div>
+            <div class="row actions">
+              <button class="btn btn-primary" type="submit">Añadir cuenta</button>
+            </div>
+          </form>
+
+          <div class="list" id="accountList"></div>
+          <p class="muted small" id="accountEmpty" hidden>Sin cuentas todavía. Crea al menos una.</p>
+        </section>
+      </div>
+
+      <!-- TAGS -->
+      <div class="panel" id="tab-tags" role="tabpanel">
+        <section class="card">
+          <div class="card-header">
+            <h2>Etiquetas</h2>
+            <p class="muted">Crea etiquetas aquí. Luego se seleccionan en “Nuevo movimiento”.</p>
+          </div>
+
+          <form id="formTag" class="form">
+            <div class="row">
+              <div class="field">
+                <label for="tagName">Nombre</label>
+                <input id="tagName" type="text" required maxlength="24" placeholder="Ej: Comida" />
+              </div>
+              <div class="field">
+                <label for="tagColor">Color</label>
+                <input id="tagColor" type="color" value="#84d19a" />
+              </div>
+            </div>
+            <div class="row actions">
+              <button class="btn btn-primary" type="submit">Añadir etiqueta</button>
+            </div>
+          </form>
+
+          <div class="tags-grid" id="tagList"></div>
+          <p class="muted small" id="tagEmpty" hidden>Sin etiquetas todavía.</p>
+        </section>
+      </div>
+
+      <!-- RECURRING -->
+      <div class="panel" id="tab-recurring" role="tabpanel">
+        <section class="card">
+          <div class="card-header">
+            <h2>Recurrentes</h2>
+            <p class="muted">No se generan solos: usa “Añadir hoy” en la lista para registrar el pago.</p>
+          </div>
+
+          <form id="formRec" class="form">
+            <div class="row">
+              <div class="field">
+                <label for="recName">Nombre</label>
+                <input id="recName" type="text" required maxlength="40" placeholder="Ej: Spotify" />
+              </div>
+              <div class="field">
+                <label for="recAmount">Cantidad</label>
+                <input id="recAmount" type="number" inputmode="decimal" step="0.01" min="0.01" required />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="field">
+                <label for="recType">Tipo</label>
+                <select id="recType" required>
+                  <option value="expense">Gasto</option>
+                  <option value="income">Ingreso</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="recAccount">Cuenta</label>
+                <select id="recAccount" required></select>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Etiquetas (opcional)</label>
+              <div id="recTagsChips" class="chips" aria-label="Etiquetas seleccionadas recurrentes"></div>
+              <button type="button" class="btn btn-ghost btn-sm btn-pick" id="btnRecPickTags">Elegir</button>
+              <div class="picker" id="recTagPicker" hidden aria-label="Selector de etiquetas recurrentes"></div>
+            </div>
+
+            <div class="row actions">
+              <button class="btn btn-primary" type="submit">Añadir recurrente</button>
+            </div>
+          </form>
+
+          <div class="list" id="recList"></div>
+          <p class="muted small" id="recEmpty" hidden>Sin recurrentes.</p>
+        </section>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <span class="muted small">Local-only · Sin servidor · Datos en tu navegador</span>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
